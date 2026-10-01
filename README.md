@@ -68,5 +68,5 @@ pytest -v -s --bmc-url=https://127.0.0.1:2443 --bmc-user=root --bmc-pass=0penBmc
 ---
 
 ## Ссылка на GitHub репозиторий
-Разработанные автотесты и отчеты подготовлены для публикации в репозитории:
-`https://github.com/dra1ner/openbmc-automation-labs/tree/main/lab5_redfish_pytest`
+Разработанные автотесты и отчеты опубликованы в репозитории:
+`https://github.com/dra1nerrr/lab5_TPO`
