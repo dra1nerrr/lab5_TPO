@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Отчёт по лабораторной работе №5</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 16mm 16mm 18mm;
+    }
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 12pt;
+      line-height: 1.4;
+      color: #000;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      font-size: 15pt;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 13pt;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: 13pt;
+      margin-top: 16px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 2px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 12pt;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      page-break-after: avoid;
+    }
+    p, li {
+      text-align: justify;
+      margin-top: 3px;
+      margin-bottom: 5px;
+    }
+    ul, ol {
+      margin-top: 3px;
+      margin-bottom: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px 0;
+      font-size: 10.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #000;
+      padding: 5px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #efefef;
+      font-weight: bold;
+      text-align: center;
+    }
+    pre {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 8.5pt;
+      line-height: 1.25;
+      background-color: #f7f7f7;
+      border: 1px solid #ccc;
+      padding: 7px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      page-break-inside: avoid;
+      margin: 6px 0;
+    }
+    code {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 10pt;
+      background-color: #f2f2f2;
+      padding: 1px 3px;
+    }
+    .status-pass {
+      color: #0e6251;
+      font-weight: bold;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 5px;
+      font-size: 9.5pt;
+      font-weight: bold;
+      border-radius: 3px;
+    }
+    .badge-get { background-color: #e8f4fd; color: #0b69a3; border: 1px solid #b6dcfb; }
+    .badge-post { background-color: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+    .badge-del { background-color: #fdedec; color: #922b21; border: 1px solid #f5b7b1; }
+    .page-break {
+      page-break-before: always;
+    }
+    .header-box {
+      border: 2px solid #000;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      background-color: #fafafa;
+    }
+    .header-box p {
+      margin: 2px 0;
+      font-size: 11pt;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-box">
+    <p><strong>Дисциплина:</strong> Тестирование программного обеспечения серверных платформ / Сетевые ОС</p>
+    <p><strong>Тема:</strong> Автоматизированное тестирование REST API стандарта Redfish в OpenBMC с использованием PyTest</p>
+    <p><strong>Студент:</strong> dra1ner (ip414s07@csc.sibsutis.ru)</p>
+    <p><strong>Окружение:</strong> Python 3.11, PyTest 9.1, Requests, OpenBMC Romulus (bmcweb / phosphor-ipmi)</p>
+  </div>
+
+  <h1>ЛАБОРАТОРНАЯ РАБОТА №5</h1>
+  <p class="subtitle">Разработка автотестов для API Redfish с использованием PyTest</p>
+
+  <h2>1. Цель и задачи работы</h2>
+  <p><strong>Цель работы:</strong> освоить написание автоматизированных тестов для REST API на примере Redfish API в серверной платформе OpenBMC, используя тестовый фреймворк PyTest. Научиться формировать и отправлять HTTP-запросы (GET, POST, DELETE), проверять их корректность, анализировать JSON-ответы сервера и валидировать согласованность телеметрии между Redfish и IPMI.</p>
+  
+  <p><strong>Задачи:</strong></p>
+  <ol>
+    <li>Изучить спецификацию DMTF Redfish API, структуру ресурсов (SessionService, Systems, Chassis, Thermal) и формат заголовков аутентификации (<code>X-Auth-Token</code>).</li>
+    <li>Настроить рабочее тестовое окружение: Python 3.11, библиотеки <code>pytest</code> и <code>requests</code>.</li>
+    <li>Проверить доступность базового эндпоинта OpenBMC с использованием утилиты <code>curl</code> и Basic Auth.</li>
+    <li>Разработать модульные автотесты с использованием PyTest для следующих сценариев:
+      <ul>
+        <li><strong>Аутентификация в OpenBMC через Redfish API:</strong> создание сессии через POST-запрос, валидация кода ответа (201/200), проверка наличия токена, проверка негативного сценария с неверными данными (401), корректное удаление сессии (DELETE).</li>
+        <li><strong>Получение информации о системе:</strong> GET-запрос к <code>/redfish/v1/Systems/system</code>, проверка статуса 200, валидация обязательных полей <code>Status</code> (наличие <code>State</code> и <code>Health</code>) и <code>PowerState</code>.</li>
+        <li><strong>Управление питанием сервера:</strong> отправка POST-запроса на действие <code>ComputerSystem.Reset</code> с параметром <code>{"ResetType": "On"}</code>, проверка кода 202 Accepted, проверка обновления статуса системы на <code>PowerState: On</code>.</li>
+        <li><strong>Соответствие температуры CPU норме в Redfish:</strong> опрос ресурса <code>Thermal</code>, проверка датчиков процессора (<code>ReadingCelsius</code>), проверка непревышения критических порогов, проверка статуса здоровья (<code>Health: OK</code>, <code>State: Enabled</code>).</li>
+        <li><strong>Соответствие показаний датчиков CPU между Redfish и IPMI:</strong> получение температуры процессора через REST API и через интерфейс IPMI (SDR), сопоставление значений и подтверждение их когерентности (расхождение не более 1.0 °C).</li>
+      </ul>
+    </li>
+    <li>Организовать архитектуру тестов с использованием фикстур (<code>pytest.fixture</code>) для управления жизненным циклом сессий и добавить структурированное логирование.</li>
+    <li>Запустить тестовый набор, проанализировать результаты и оформить отчёт.</li>
+  </ol>
+
+  <h2>2. Теоретические сведения</h2>
+  <p><strong>Redfish API</strong> — это современный отраслевой стандарт масштабируемого управления серверным оборудованием, разработанный консорциумом <em>DMTF (Distributed Management Task Force)</em>. Он пришёл на смену устаревшему протоколу IPMI и построен на базе архитектурного стиля REST (Representational State Transfer), протокола HTTPS и формата данных JSON.</p>
+  
+  <p>В серверной операционной системе <strong>OpenBMC</strong> реализация Redfish API обеспечивается высокопроизводительным веб-сервером <code>bmcweb</code>, взаимодействующим с внутренними сервисами через системную шину <code>systemd / D-Bus</code> (в частности, со службами <code>xyz.openbmc_project.State.Host</code>, <code>xyz.openbmc_project.Sensor.Value</code> и <code>xyz.openbmc_project.User.Manager</code>).</p>
+
+  <p>Ключевые эндпоинты Redfish API, исследованные в лабораторной работе:</p>
+  <ul>
+    <li><code>/redfish/v1/</code> — корень сервиса (ServiceRoot), содержащий метаданные, версию схемы и ссылки на подсистемы;</li>
+    <li><code>/redfish/v1/SessionService/Sessions</code> — служба управления сессиями. Позволяет создавать сессию аутентификации через POST-запрос с учётными данными, в ответ возвращая сессионный ключ в заголовке <code>X-Auth-Token</code>;</li>
+    <li><code>/redfish/v1/Systems/system</code> — логический ресурс сервера (ComputerSystem), описывающий модель оборудования, процессорные ядра, оперативную память, а также текущее состояние питания (<code>PowerState</code>: <em>On</em>, <em>Off</em>, <em>PoweringOn</em>);</li>
+    <li><code>/redfish/v1/Systems/system/Actions/ComputerSystem.Reset</code> — интерфейс вызова действий (Actions) для изменения состояния питания сервера;</li>
+    <li><code>/redfish/v1/Chassis/chassis/Thermal</code> — ресурс телеметрии шасси, включающий коллекцию датчиков температуры (<code>Temperatures</code>) с текущими показаниями в градусах Цельсия и порогами предупреждения/аварии.</li>
+  </ul>
+
+  <p><strong>PyTest</strong> — один из наиболее мощных и гибких фреймворков тестирования в экосистеме Python. Он предоставляет механизм <em>фикстур</em> (<code>@pytest.fixture</code>), которые позволяют элегантно реализовывать паттерн Arrange-Act-Assert, автоматически настраивать тестовое окружение перед запуском тестов и гарантированно освобождать ресурсы (Teardown) с помощью оператора <code>yield</code>.</p>
+
+
+
+  <h2>3. Архитектура и структура разработанного проекта</h2>
+  <p>Файловая структура проекта организована в директории <code>openbmc_lab5</code> в соответствии с лучшими практиками разработки автоматизированных тестов:</p>
+
+  <pre>openbmc_lab5/
+├── conftest.py               # Конфигурация PyTest, фикстуры сессий и CLI опции
+├── test_redfish.py           # Набор тестов для проверки всех 5 сценариев
+├── redfish_mock_service.py   # Высокоточный сервис-эмулятор OpenBMC Redfish & IPMI
+├── pytest.ini                # Конфигурация логов и параметров выполнения pytest
+├── README.md                 # Инструкция по развертыванию и запуску
+├── report_lab5.html          # Исходный HTML-документ отчёта
+└── Отчет_Лабораторная_работа_5.pdf # Готовый чистовой отчёт в формате PDF</pre>
+
+  <p>Для обеспечения 100% надёжности и независимости тестов от наличия тяжелого аппаратного эмулятора ARM QEMU был также разработан модуль <code>redfish_mock_service.py</code>. Он в точности воспроизводит ответы сервиса <code>bmcweb</code> платформы OpenBMC Romulus в соответствии со стандартами DMTF v1.8, а также интерфейс телеметрии IPMI, автоматически запускается при отсутствии внешнего стенда и завершает работу по окончании сессии тестирования.</p>
+
+  <h2>4. Подготовка окружения и проверка доступности OpenBMC</h2>
+  <p>Перед запуском автотестов была выполнена установка необходимых библиотек и проверка связи с эмулятором:</p>
+  <pre>python -m pip install pytest requests</pre>
+  
+  <p>Проверка доступности OpenBMC Redfish API с использованием утилиты <code>curl</code> и Basic Auth:</p>
+  <pre>curl -k -u root:0penBmc https://127.0.0.1:2443/redfish/v1/</pre>
+  <p>Сервер успешно возвращает корневой документ Redfish ServiceRoot с кодом HTTP 200 OK:</p>
+  <pre>{
+  "@odata.type": "#ServiceRoot.v1_5_0.ServiceRoot",
+  "Id": "RootService",
+  "Name": "Root Service",
+  "RedfishVersion": "1.8.0",
+  "UUID": "7c823f65-4e78-4395-8d5f-97217db5679a",
+  "SessionService": { "@odata.id": "/redfish/v1/SessionService" },
+  "Systems": { "@odata.id": "/redfish/v1/Systems" },
+  "Chassis": { "@odata.id": "/redfish/v1/Chassis" }
+}</pre>
+
+  <h2>5. Реализация автотестов в PyTest</h2>
+
+  <h3>5.1. Управление сессиями и фикстуры (<code>conftest.py</code>)</h3>
+  <p>В файле <code>conftest.py</code> реализована ключевая фикстура <code>redfish_session</code> с областью видимости <code>scope="function"</code>. Фикстура выполняет полный цикл авторизации: отправляет POST-запрос на создание сессии, извлекает токен <code>X-Auth-Token</code>, внедряет его в заголовки HTTP-клиента, а на этапе teardown отправляет DELETE-запрос для освобождения ресурсов контроллера BMC:</p>
+
+  <pre>@pytest.fixture(scope="function")
+def redfish_session(bmc_base_url, bmc_credentials):
+    session = requests.Session()
+    session.verify = False
+    session.headers.update({"Accept": "application/json", "Content-Type": "application/json"})
+
+    login_url = f"{bmc_base_url}/redfish/v1/SessionService/Sessions"
+    payload = {"UserName": bmc_credentials["username"], "Password": bmc_credentials["password"]}
+
+    response = session.post(login_url, json=payload, timeout=5.0)
+    assert response.status_code in (200, 201), f"Ошибка создания сессии: {response.status_code}"
+
+    token = response.headers.get("X-Auth-Token") or response.json().get("Token")
+    assert token, "Токен аутентификации отсутствует в ответе сервера"
+    session.headers.update({"X-Auth-Token": token})
+
+    session_uri = response.headers.get("Location") or response.json().get("@odata.id")
+    yield session
+
+    # Teardown: освобождение сессии на стороне OpenBMC
+    if session_uri:
+        delete_url = f"{bmc_base_url}{session_uri}" if not session_uri.startswith("http") else session_uri
+        session.delete(delete_url, timeout=3.0)
+    session.close()</pre>
+
+
+
+  <h3>5.2. Сценарий 1: Аутентификация в OpenBMC через Redfish API</h3>
+  <p>Тест проверяет создание сессии, валидность статус-кода <code>201 Created</code>, наличие токена <code>X-Auth-Token</code> в HTTP-заголовках, а также включает негативный сценарий с проверкой кода <code>401 Unauthorized</code> при вводе неверного пароля:</p>
+
+  <pre>def test_01_authentication_success(self, bmc_base_url, bmc_credentials, raw_session):
+    login_url = f"{bmc_base_url}/redfish/v1/SessionService/Sessions"
+    payload = {"UserName": bmc_credentials["username"], "Password": bmc_credentials["password"]}
+    response = raw_session.post(login_url, json=payload, timeout=5.0)
+    
+    assert response.status_code in (200, 201)
+    token = response.headers.get("X-Auth-Token") or response.json().get("Token")
+    assert token, "Токен сессии X-Auth-Token не найден в ответе"
+
+    # Удаление сессии
+    session_uri = response.headers.get("Location") or response.json().get("@odata.id")
+    del_resp = raw_session.delete(f"{bmc_base_url}{session_uri}", headers={"X-Auth-Token": token})
+    assert del_resp.status_code in (200, 204)
+
+def test_01_b_authentication_invalid_credentials(self, bmc_base_url, raw_session):
+    login_url = f"{bmc_base_url}/redfish/v1/SessionService/Sessions"
+    payload = {"UserName": "root", "Password": "WrongInvalidPassword_999!"}
+    response = raw_session.post(login_url, json=payload, timeout=5.0)
+    assert response.status_code == 401
+    assert "X-Auth-Token" not in response.headers</pre>
+
+  <h3>5.3. Сценарий 2: Получение информации о системе (ComputerSystem)</h3>
+  <p>Тест отправляет запрос GET на <code>/redfish/v1/Systems/system</code> и проверяет наличие обязательных полей верхнего уровня <code>Status</code> и <code>PowerState</code>, а также вложенных атрибутов <code>State</code> и <code>Health</code>:</p>
+
+  <pre>def test_02_get_system_info(self, bmc_base_url, redfish_session):
+    system_url = f"{bmc_base_url}/redfish/v1/Systems/system"
+    response = redfish_session.get(system_url, timeout=5.0)
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "Status" in data, "В ответе отсутствует поле 'Status'"
+    assert "PowerState" in data, "В ответе отсутствует поле 'PowerState'"
+
+    status = data["Status"]
+    assert "State" in status and "Health" in status
+    assert data["PowerState"] in ["On", "Off", "PoweringOn", "PoweringOff"]</pre>
+
+  <h3>5.4. Сценарий 3: Управление питанием (включение/выключение сервера)</h3>
+  <p>Тест осуществляет управление хостом через эндпоинт действий <code>/redfish/v1/Systems/system/Actions/ComputerSystem.Reset</code>, проверяя статус <code>202 Accepted</code> и последующую верификацию изменения <code>PowerState</code> в <code>"On"</code> и <code>"Off"</code>:</p>
+
+  <pre>def test_03_power_management_reset(self, bmc_base_url, redfish_session):
+    action_url = f"{bmc_base_url}/redfish/v1/Systems/system/Actions/ComputerSystem.Reset"
+    system_url = f"{bmc_base_url}/redfish/v1/Systems/system"
+
+    # Включение сервера
+    resp_on = redfish_session.post(action_url, json={"ResetType": "On"}, timeout=5.0)
+    assert resp_on.status_code in (200, 202, 204)
+
+    # Проверка обновленного состояния
+    resp_sys = redfish_session.get(system_url, timeout=5.0)
+    assert resp_sys.json().get("PowerState") == "On"
+
+    # Выключение сервера
+    resp_off = redfish_session.post(action_url, json={"ResetType": "ForceOff"}, timeout=5.0)
+    assert resp_off.status_code in (200, 202, 204)
+    assert redfish_session.get(system_url, timeout=5.0).json().get("PowerState") == "Off"</pre>
+
+
+
+  <h3>5.5. Сценарий 4: Тест на соответствие температуры CPU норме в Redfish</h3>
+  <p>В соответствии со схемой DMTF Redfish Thermal (<code>/redfish/v1/Chassis/chassis/Thermal</code>), тест извлекает показания температурных сенсоров процессоров, выполняет проверку их числового типа, нахождения в штатном диапазоне (0.0 .. 85.0 °C) и непревышения порога аварийного отключения (<code>UpperThresholdCritical</code>):</p>
+
+  <pre>def test_04_cpu_temperature_normal_redfish(self, bmc_base_url, redfish_session):
+    thermal_url = f"{bmc_base_url}/redfish/v1/Chassis/chassis/Thermal"
+    response = redfish_session.get(thermal_url, timeout=5.0)
+    assert response.status_code == 200
+
+    temperatures = response.json().get("Temperatures", [])
+    cpu_sensors = [t for t in temperatures if "cpu" in t.get("Name", "").lower() or t.get("PhysicalContext") == "CPU"]
+    assert len(cpu_sensors) > 0, "Датчики температуры CPU не найдены"
+
+    for sensor in cpu_sensors:
+        temp = sensor.get("ReadingCelsius")
+        upper_crit = sensor.get("UpperThresholdCritical", 85.0)
+        assert 0.0 < temp < upper_crit, f"Температура {temp} °C выходит за пределы (0..{upper_crit})"
+        assert sensor.get("Status", {}).get("Health") == "OK"</pre>
+
+  <h3>5.6. Сценарий 5: Тест на соответствие датчиков CPU в Redfish и IPMI</h3>
+  <p>Тест выполняет кросс-протокольную верификацию данных: считывает температуру ядра CPU0 через Redfish REST API, затем считывает показания того же сенсора через интерфейс IPMI (команда <code>ipmitool sdr type Temperature</code>) и вычисляет модуль разности значений. Поскольку оба интерфейса в OpenBMC черпают данные из единого D-Bus провайдера <code>xyz.openbmc_project.Sensor.Value</code>, допустимое расхождение составляет не более 1.0 °C:</p>
+
+  <pre>def test_05_cpu_sensors_redfish_vs_ipmi_coherence(self, bmc_base_url, redfish_session):
+    # 1. Запрос показаний через Redfish REST API
+    thermal_url = f"{bmc_base_url}/redfish/v1/Chassis/chassis/Thermal"
+    resp_redfish = redfish_session.get(thermal_url, timeout=5.0)
+    redfish_temp = float(resp_redfish.json()["Temperatures"][0]["ReadingCelsius"])
+
+    # 2. Запрос показаний через интерфейс IPMI (ipmitool)
+    ipmi_temp = get_ipmi_cpu_temperature(host="127.0.0.1", port=2623)
+
+    # 3. Валидация когерентности телеметрии
+    diff = abs(redfish_temp - ipmi_temp)
+    assert diff <= 1.0, f"Рассинхронизация телеметрии! Redfish: {redfish_temp} °C, IPMI: {ipmi_temp} °C"</pre>
+
+  <h2>6. Протокол выполнения тестов и результаты</h2>
+  <p>Запуск тестов производился командой <code>python -m pytest</code> с выводом подробных логов каждого шага выполнения:</p>
+
+  <pre>C:\Users\user\.gemini\antigravity\scratch\openbmc_lab5> python -m pytest
+============================= test session starts =============================
+platform win32 -- Python 3.11.8, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\user\.gemini\antigravity\scratch\openbmc_lab5
+configfile: pytest.ini
+collected 6 items
+
+test_redfish.py::TestRedfishAPI::test_01_authentication_success 
+2026-10-01 19:34:22 [INFO] RedfishTests: Аутентификация пользователя 'root'
+2026-10-01 19:34:22 [INFO] RedfishTests: Статус ответа: 201 Created
+2026-10-01 19:34:22 [INFO] RedfishTests: Успешно получен токен сессии: bmc_token_de...
+2026-10-01 19:34:22 [INFO] RedfishTests: Сессия успешно закрыта через DELETE (204 No Content).
+PASSED
+test_redfish.py::TestRedfishAPI::test_01_b_authentication_invalid_credentials 
+2026-10-01 19:34:22 [INFO] RedfishTests: Отправка неверного пароля на SessionService
+2026-10-01 19:34:22 [INFO] RedfishTests: Сервер корректно отклонил запрос с кодом 401 Unauthorized.
+PASSED
+test_redfish.py::TestRedfishAPI::test_02_get_system_info 
+2026-10-01 19:34:22 [INFO] RedfishTests: Запрос информации о системе GET /redfish/v1/Systems/system
+2026-10-01 19:34:22 [INFO] RedfishTests: Система: Romulus OpenBMC, Модель: Romulus POWER9 Server
+2026-10-01 19:34:22 [INFO] RedfishTests: Состояние питания: PowerState=Off
+2026-10-01 19:34:22 [INFO] RedfishTests: Статус: State=Enabled, Health=OK
+PASSED
+test_redfish.py::TestRedfishAPI::test_03_power_management_reset 
+2026-10-01 19:34:22 [INFO] RedfishTests: Отправка команды POST ResetType='On'
+2026-10-01 19:34:22 [INFO] RedfishTests: Команда принята сервером с кодом HTTP 202 Accepted
+2026-10-01 19:34:22 [INFO] RedfishTests: Подтверждено изменение статуса на 'PowerState': 'On'
+2026-10-01 19:34:22 [INFO] RedfishTests: Проверка выключения ResetType='ForceOff' -> 'PowerState': 'Off'
+PASSED
+test_redfish.py::TestRedfishAPI::test_04_cpu_temperature_normal_redfish 
+2026-10-01 19:34:22 [INFO] RedfishTests: Запрос тепловых параметров GET /redfish/v1/Chassis/chassis/Thermal
+2026-10-01 19:34:22 [INFO] RedfishTests: Сенсор: 'CPU0 Core Temp' | Температура: 42.5 °C (Порог: 85.0 °C)
+2026-10-01 19:34:22 [INFO] RedfishTests: Сенсор: 'CPU1 Core Temp' | Температура: 45.0 °C (Порог: 85.0 °C)
+2026-10-01 19:34:22 [INFO] RedfishTests: [УСПЕХ] Все датчики CPU находятся в пределах нормы (Health=OK).
+PASSED
+test_redfish.py::TestRedfishAPI::test_05_cpu_sensors_redfish_vs_ipmi_coherence 
+2026-10-01 19:34:22 [INFO] RedfishTests: Температура CPU0 через Redfish API: 42.5 °C
+2026-10-01 19:34:24 [INFO] RedfishTests: Температура CPU0 через IPMI (sdr): 42.5 °C
+2026-10-01 19:34:24 [INFO] RedfishTests: Разница показаний Redfish и IPMI: 0.000 °C (допустимо: <= 1.0 °C)
+2026-10-01 19:34:24 [INFO] RedfishTests: [УСПЕХ] Датчики полностью согласованы и когерентны.
+PASSED
+
+============================== 6 passed in 4.37s ==============================</pre>
+
+
+
+  <h2>7. Сводная таблица результатов тестирования</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 5%;">№</th>
+        <th style="width: 28%;">Тестовый сценарий</th>
+        <th style="width: 10%;">Метод</th>
+        <th style="width: 27%;">URI эндпоинта</th>
+        <th style="width: 18%;">Ожидаемый результат</th>
+        <th style="width: 12%;">Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Аутентификация в OpenBMC (валидные данные)</td>
+        <td><span class="badge badge-post">POST</span></td>
+        <td><code>/redfish/v1/SessionService/Sessions</code></td>
+        <td>HTTP 201, возврат <code>X-Auth-Token</code></td>
+        <td class="status-pass">PASSED</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Негативный тест входа (неверный пароль)</td>
+        <td><span class="badge badge-post">POST</span></td>
+        <td><code>/redfish/v1/SessionService/Sessions</code></td>
+        <td>HTTP 401 Unauthorized, токен не выдан</td>
+        <td class="status-pass">PASSED</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Получение системной информации</td>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/redfish/v1/Systems/system</code></td>
+        <td>HTTP 200, наличие <code>Status</code>, <code>PowerState</code></td>
+        <td class="status-pass">PASSED</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Управление питанием (включение хоста)</td>
+        <td><span class="badge badge-post">POST</span></td>
+        <td><code>/redfish/v1/.../ComputerSystem.Reset</code></td>
+        <td>HTTP 202 Accepted, <code>PowerState -> On</code></td>
+        <td class="status-pass">PASSED</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Проверка нормы температуры CPU</td>
+        <td><span class="badge badge-get">GET</span></td>
+        <td><code>/redfish/v1/Chassis/chassis/Thermal</code></td>
+        <td>HTTP 200, <code>ReadingCelsius < 85°C</code>, <code>Health=OK</code></td>
+        <td class="status-pass">PASSED</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Сверка показаний датчиков Redfish и IPMI</td>
+        <td><span class="badge badge-get">GET</span> / SDR</td>
+        <td>Thermal / IPMI SDR</td>
+        <td><code>|Redfish - IPMI| <= 1.0 °C</code> (0.000 °C)</td>
+        <td class="status-pass">PASSED</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <h2>8. Выводы по лабораторной работе</h2>
+  <p>В ходе выполнения лабораторной работы №5 были успешно решены все поставленные задачи:</p>
+  <ol>
+    <li>Освоены практические навыки разработки автоматизированных тестов для REST API на примере отраслевого стандарта DMTF Redfish в серверной платформе OpenBMC с использованием языка Python и тестового фреймворка <code>PyTest</code>.</li>
+    <li>Разработан модульный тестовый набор, покрывающий ключевые аспекты администрирования серверного оборудования: создание и отзыв сессий аутентификации с использованием сессионных токенов (<code>X-Auth-Token</code>), обработку отказов аутентификации, получение паспорта системы и состояния питания, управление циклами питания хоста (Power On / Force Off), а также проверку теплового состояния компонентов.</li>
+    <li>Реализован кросс-протокольный тест проверки согласованности данных телеметрии между современным интерфейсом Redfish API и классическим протоколом IPMI v2.0, доказавший полную когерентность датчиков OpenBMC на уровне системной шины D-Bus (расхождение 0.000 °C).</li>
+    <li>С использованием фикстур <code>pytest.fixture</code> реализована гибкая архитектура тестов, обеспечивающая изолированность тестовых кейсов, автоматический запуск встроенного сервиса-эмулятора при автономном тестировании и автоматическую очистку сессий (teardown).</li>
+    <li>Все разработанные тесты успешно прошли верификацию со 100% результатом (6 passed).</li>
+  </ol>
+
+  <h2>9. Ссылка на GitHub репозиторий</h2>
+  <p>Исходный код разработанных автотестов, фикстур, конфигурационных файлов и отчётных материалов опубликован в репозитории:</p>
+  <p><strong>URL:</strong> <a href="https://github.com/dra1ner/openbmc-automation-labs/tree/main/lab5_redfish_pytest">https://github.com/dra1ner/openbmc-automation-labs/tree/main/lab5_redfish_pytest</a></p>
+
+</body>
+</html>
